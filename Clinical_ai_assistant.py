@@ -213,7 +213,9 @@ if st.session_state.quiz_data:
 else:
     st.info("No quiz questions available.")
 
-import streamlit as st import pandas as pd import datetime
+import streamlit as st
+import pandas as pd
+import datetime
 
 #🧠 Sidebar Navigation
 
