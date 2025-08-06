@@ -2,8 +2,6 @@ streamlit
 transformers
 torch
 gtts
-beautifulsoup4
-requests
-pandas
 speechrecognition
-pyaudio (for local; not supported on Streamlit Cloud)
+bs4
+requests
