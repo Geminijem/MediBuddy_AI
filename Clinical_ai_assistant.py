@@ -215,21 +215,47 @@ else:
 
 import streamlit as st import pandas as pd import datetime
 
-🧠 Sidebar Navigation
+#🧠 Sidebar Navigation
 
 st.sidebar.title("🧠 Clinical AI Assistant") menu = st.sidebar.radio("Go to", ( "🏠 Home", "📅 Study Planner", "📈 Study Charts", "🧠 Daily Tracker", "🗃️ Fact Vault", "🤖 GPT Chat", "🩺 OSCE Simulations" ))
 
 st.title("👨‍⚕️ Clinical Assistant Dashboard")
 
-🏠 Home Section
+#🏠 Home Section
 
 if menu == "🏠 Home": st.header("Welcome to the Clinical AI Assistant") st.markdown(""" Use the sidebar to navigate between tools: - Plan studies via Google Form - Track study progress with charts - Log your mood, focus, and hours - Store important facts in vaults - Ask GPT medical questions - Simulate cases via OSCE tool """)
 
-📅 Study Planner (Google Form link)
+#📅 Study Planner (Google Form link)
 
-elif menu == "📅 Study Planner": st.subheader("📅 Study Planner") st.write("Plan your study using the form below:") st.markdown(""" 📝 Fill the Google Study Planner Form """)
+elif menu == "📅 Study Planner":
+    st.subheader("📅 Study Planner")
+    st.markdown("Fill out your weekly or daily study goals using the form below:")
 
-📈 Study Charts (Mockup chart for now)
+    # Link to Google Form
+    st.markdown(
+        '[📝 Open Study Planner Form](https://forms.gle/2XEtmd7iZ19Uh6hc8)',
+        unsafe_allow_html=True
+    )
+
+    # Optional embed (won’t show properly on Streamlit Cloud, mostly works locally)
+    try:
+        st.components.v1.iframe("https://forms.gle/2XEtmd7iZ19Uh6hc8", height=600)
+    except:
+        st.warning("Form embedding not supported here, click the link above.")
+
+    st.markdown("---")
+    st.markdown("### 📊 Submitted Study Goals")
+
+    # Link to your Google Sheet (as CSV export)
+    sheet_url = "https://docs.google.com/spreadsheets/d/1L3sLBdeV9R4xCAUfVBycsU1Wq7EVZklHifN2hvp9bnA/export?format=csv"
+
+    try:
+        df = pd.read_csv(sheet_url)
+        st.dataframe(df, use_container_width=True)
+    except Exception as e:
+        st.error(f"❌ Failed to load Study Planner Sheet: {e}")
+
+#📈 Study Charts (Mockup chart for now)
 
 elif menu == "📈 Study Charts": st.subheader("📈 Study Progress Tracker") st.write("Below is a sample chart for visualization:")
 
@@ -239,14 +265,14 @@ df = pd.DataFrame({
 })
 st.line_chart(df.set_index("Date"))
 
-🧠 Daily Mood / Focus / Revision Tracker
+#🧠 Daily Mood / Focus / Revision Tracker
 
 elif menu == "🧠 Daily Tracker": st.subheader("🧠 Daily Mood / Focus / Study Tracker") with st.form("daily_checkin_form"): mood = st.selectbox("Mood", ["😊 Happy", "😐 Neutral", "😞 Sad"]) focus = st.slider("Focus Level (1-10)", 1, 10, 5) hours = st.number_input("Hours of Study", min_value=0.0, step=0.5) revised = st.text_area("What did you revise today?") submitted = st.form_submit_button("Save Entry")
 
 if submitted:
     st.success("✔️ Entry saved (mockup).")
 
-🗃️ Fact Vault
+#🗃️ Fact Vault
 
 elif menu == "🗃️ Fact Vault": st.subheader("🗃️ Medical Fact Vault") if "vault" not in st.session_state: st.session_state.vault = []
 
@@ -264,11 +290,11 @@ if st.session_state.vault:
     vault_df = pd.DataFrame(st.session_state.vault)
     st.dataframe(vault_df, use_container_width=True)
 
-🤖 GPT Chat Support (Placeholder only)
+#🤖 GPT Chat Support (Placeholder only)
 
 elif menu == "🤖 GPT Chat": st.subheader("🤖 Ask GPT Medical Questions") st.info("Use built-in AI chat in Colab app for now.")
 
-🩺 OSCE Simulation (Mock version)
+#🩺 OSCE Simulation (Mock version)
 
 elif menu == "🩺 OSCE Simulations": st.subheader("🩺 OSCE Case Simulation") st.markdown(""" Case 1: Abdominal Pain
 
