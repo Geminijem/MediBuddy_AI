@@ -5,3 +5,5 @@ gtts
 beautifulsoup4
 requests
 pandas
+speechrecognition
+pyaudio (for local; not supported on Streamlit Cloud)
