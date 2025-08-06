@@ -217,29 +217,40 @@ import streamlit as st
 import pandas as pd
 import datetime
 
-#🧠 Sidebar Navigation
-
-st.sidebar.title("🧠 Clinical AI Assistant") menu = st.sidebar.radio("Go to", ( "🏠 Home", "📅 Study Planner", "📈 Study Charts", "🧠 Daily Tracker", "🗃️ Fact Vault", "🤖 GPT Chat", "🩺 OSCE Simulations" ))
+# 🧠 Sidebar Navigation
+st.sidebar.title("🧠 Clinical AI Assistant")
+menu = st.sidebar.radio("Go to", (
+    "🏠 Home",
+    "📅 Study Planner",
+    "📈 Study Charts",
+    "🧠 Daily Tracker",
+    "🗃️ Fact Vault",
+    "🤖 GPT Chat",
+    "🩺 OSCE Simulations"
+))
 
 st.title("👨‍⚕️ Clinical Assistant Dashboard")
 
-#🏠 Home Section
+# 🏠 Home Section
+if menu == "🏠 Home":
+    st.header("Welcome to the Clinical AI Assistant")
+    st.markdown("""
+    Use the sidebar to navigate between tools:
+    - Plan studies via Google Form
+    - Track study progress with charts
+    - Log your mood, focus, and hours
+    - Store important facts in vaults
+    - Ask GPT medical questions
+    - Simulate cases via OSCE tool
+    """)
 
-if menu == "🏠 Home": st.header("Welcome to the Clinical AI Assistant") st.markdown(""" Use the sidebar to navigate between tools: - Plan studies via Google Form - Track study progress with charts - Log your mood, focus, and hours - Store important facts in vaults - Ask GPT medical questions - Simulate cases via OSCE tool """)
-
-#📅 Study Planner (Google Form link)
-
+# 📅 Study Planner (Google Form link)
 elif menu == "📅 Study Planner":
     st.subheader("📅 Study Planner")
     st.markdown("Fill out your weekly or daily study goals using the form below:")
 
-    # Link to Google Form
-    st.markdown(
-        '[📝 Open Study Planner Form](https://forms.gle/2XEtmd7iZ19Uh6hc8)',
-        unsafe_allow_html=True
-    )
+    st.markdown('[📝 Open Study Planner Form](https://forms.gle/2XEtmd7iZ19Uh6hc8)', unsafe_allow_html=True)
 
-    # Optional embed (won’t show properly on Streamlit Cloud, mostly works locally)
     try:
         st.components.v1.iframe("https://forms.gle/2XEtmd7iZ19Uh6hc8", height=600)
     except:
@@ -248,65 +259,72 @@ elif menu == "📅 Study Planner":
     st.markdown("---")
     st.markdown("### 📊 Submitted Study Goals")
 
-    # Link to your Google Sheet (as CSV export)
     sheet_url = "https://docs.google.com/spreadsheets/d/1L3sLBdeV9R4xCAUfVBycsU1Wq7EVZklHifN2hvp9bnA/export?format=csv"
-
     try:
         df = pd.read_csv(sheet_url)
         st.dataframe(df, use_container_width=True)
     except Exception as e:
         st.error(f"❌ Failed to load Study Planner Sheet: {e}")
 
-#📈 Study Charts (Mockup chart for now)
+# 📈 Study Charts
+elif menu == "📈 Study Charts":
+    st.subheader("📈 Study Progress Tracker")
+    st.write("Below is a sample chart for visualization:")
+    df = pd.DataFrame({
+        "Date": pd.date_range(start="2025-08-01", periods=7),
+        "Hours": [1.5, 2, 2.5, 3, 2, 3.5, 4]
+    })
+    st.line_chart(df.set_index("Date"))
 
-elif menu == "📈 Study Charts": st.subheader("📈 Study Progress Tracker") st.write("Below is a sample chart for visualization:")
+# 🧠 Daily Tracker
+elif menu == "🧠 Daily Tracker":
+    st.subheader("🧠 Daily Mood / Focus / Study Tracker")
+    with st.form("daily_checkin_form"):
+        mood = st.selectbox("Mood", ["😊 Happy", "😐 Neutral", "😞 Sad"])
+        focus = st.slider("Focus Level (1-10)", 1, 10, 5)
+        hours = st.number_input("Hours of Study", min_value=0.0, step=0.5)
+        revised = st.text_area("What did you revise today?")
+        submitted = st.form_submit_button("Save Entry")
+    if submitted:
+        st.success("✔️ Entry saved (mockup).")
 
-df = pd.DataFrame({
-    "Date": pd.date_range(start="2025-08-01", periods=7),
-    "Hours": [1.5, 2, 2.5, 3, 2, 3.5, 4]
-})
-st.line_chart(df.set_index("Date"))
+# 🗃️ Fact Vault
+elif menu == "🗃️ Fact Vault":
+    st.subheader("🗃️ Medical Fact Vault")
+    if "vault" not in st.session_state:
+        st.session_state.vault = []
 
-#🧠 Daily Mood / Focus / Revision Tracker
+    with st.form("vault_form"):
+        topic = st.text_input("Topic")
+        content = st.text_area("Important Fact")
+        save = st.form_submit_button("➕ Save Fact")
 
-elif menu == "🧠 Daily Tracker": st.subheader("🧠 Daily Mood / Focus / Study Tracker") with st.form("daily_checkin_form"): mood = st.selectbox("Mood", ["😊 Happy", "😐 Neutral", "😞 Sad"]) focus = st.slider("Focus Level (1-10)", 1, 10, 5) hours = st.number_input("Hours of Study", min_value=0.0, step=0.5) revised = st.text_area("What did you revise today?") submitted = st.form_submit_button("Save Entry")
+    if save and topic and content:
+        st.session_state.vault.append({"Topic": topic, "Fact": content})
+        st.success("💾 Fact Saved")
 
-if submitted:
-    st.success("✔️ Entry saved (mockup).")
+    if st.session_state.vault:
+        st.write("Saved Facts:")
+        vault_df = pd.DataFrame(st.session_state.vault)
+        st.dataframe(vault_df, use_container_width=True)
 
-#🗃️ Fact Vault
+# 🤖 GPT Chat (Placeholder)
+elif menu == "🤖 GPT Chat":
+    st.subheader("🤖 Ask GPT Medical Questions")
+    st.info("Use built-in AI chat in Colab app for now.")
 
-elif menu == "🗃️ Fact Vault": st.subheader("🗃️ Medical Fact Vault") if "vault" not in st.session_state: st.session_state.vault = []
+# 🩺 OSCE Simulations
+elif menu == "🩺 OSCE Simulations":
+    st.subheader("🩺 OSCE Case Simulation")
+    st.markdown("""
+    **Case 1: Abdominal Pain**
 
-with st.form("vault_form"):
-    topic = st.text_input("Topic")
-    content = st.text_area("Important Fact")
-    save = st.form_submit_button("➕ Save Fact")
+    A 24-year-old male presents with right lower quadrant abdominal pain, nausea, and fever.
 
-if save and topic and content:
-    st.session_state.vault.append({"Topic": topic, "Fact": content})
-    st.success("💾 Fact Saved")
-
-if st.session_state.vault:
-    st.write("Saved Facts:")
-    vault_df = pd.DataFrame(st.session_state.vault)
-    st.dataframe(vault_df, use_container_width=True)
-
-#🤖 GPT Chat Support (Placeholder only)
-
-elif menu == "🤖 GPT Chat": st.subheader("🤖 Ask GPT Medical Questions") st.info("Use built-in AI chat in Colab app for now.")
-
-#🩺 OSCE Simulation (Mock version)
-
-elif menu == "🩺 OSCE Simulations": st.subheader("🩺 OSCE Case Simulation") st.markdown(""" Case 1: Abdominal Pain
-
-A 24-year-old male presents with right lower quadrant abdominal pain, nausea, and fever.
-
-- What is your differential diagnosis?
-- What examinations would you perform?
-- What investigations are needed?
-- Outline your management plan.
-""")
-st.text_area("💬 Type your simulated response:")
-st.button("✅ Submit Case")
-
+    - What is your differential diagnosis?
+    - What examinations would you perform?
+    - What investigations are needed?
+    - Outline your management plan.
+    """)
+    st.text_area("💬 Type your simulated response:")
+    st.button("✅ Submit Case")
