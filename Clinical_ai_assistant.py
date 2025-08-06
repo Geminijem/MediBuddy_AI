@@ -1,8 +1,6 @@
-#✅ Full Working Clinical AI Assistant App (With Voice Input/Output + BioBERT)
+import streamlit as st import speech_recognition as sr from gtts import gTTS import os import torch from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline import requests import re from bs4 import BeautifulSoup import tempfile
 
-#Includes: AI Medical Q&A, Voice Input/Output, Clean Layout
-
-import streamlit as st import speech_recognition as sr from gtts import gTTS import os import torch from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline import requests, re from bs4 import BeautifulSoup import tempfile
+---------------------- Page Config ----------------------
 
 st.set_page_config(page_title="Clinical AI Assistant", layout="centered") st.title("👨‍⚕️ Clinical AI Assistant")
 
@@ -36,7 +34,7 @@ if menu == "🏠 Home": st.subheader("📋 Welcome") st.markdown(""" Clinical AI
 
 ---------------------- 🎤 Ask via Voice ----------------------
 
-elif menu == "🎤 Ask Medical Question (Voice)": st.subheader("🎤 Voice Medical Q&A") if st.button("🎙️ Start Listening"): question = listen_to_voice() st.write(f"🗣️ You asked: {question}") response = get_medical_answer(question) st.success(response) speak_text(response)
+elif menu == "🎤 Ask Medical Question (Voice)": st.subheader("🎤 Voice Medical Q&A") if st.button("🎱 Start Listening"): question = listen_to_voice() st.write(f"🛣️ You asked: {question}") response = get_medical_answer(question) st.success(response) speak_text(response)
 
 ---------------------- ⌨️ Ask via Text ----------------------
 
