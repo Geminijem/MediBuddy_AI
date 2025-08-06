@@ -1,15 +1,27 @@
-#BioBERT Q&A system (medical question answering)
+# 🔌 Libraries
+import streamlit as st
+import pandas as pd
+import datetime
+from gtts import gTTS
+import os
+import tempfile
+
+# 🧠 BioBERT AI Q&A
 import torch
 from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
 import requests, re
 from bs4 import BeautifulSoup
 
-# Load QA pipeline
+# 🎤 Voice input
+import speech_recognition as sr
+
+# 🌐 Init BioBERT
 model_name = "ktrapeznikov/biobert_v1.1_pubmed_squad_v2"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForQuestionAnswering.from_pretrained(model_name)
 qa_pipeline = pipeline("question-answering", model=model, tokenizer=tokenizer)
 
+# 🔎 Search Wikipedia
 def search_wikipedia_summary(query):
     try:
         search_url = f"https://en.wikipedia.org/w/index.php?search={query.replace(' ', '+')}"
@@ -29,6 +41,7 @@ def search_wikipedia_summary(query):
     except Exception as e:
         return f"❌ Wikipedia error: {str(e)}"
 
+# 🤖 Ask AI (BioBERT)
 def get_medical_answer(question):
     try:
         context = search_wikipedia_summary(question)
@@ -38,96 +51,158 @@ def get_medical_answer(question):
         answer = result['answer']
         if len(answer.strip()) < 5:
             raise ValueError("Too short")
-        return f"🤖 AI (BioBERT) says:\n{answer.strip()}"
+        return f"🤖 AI (BioBERT): {answer.strip()}"
     except Exception:
         return f"📚 Wikipedia says:\n{search_wikipedia_summary(question)}"
 
-#Text to speech function with gtts
-from gtts import gTTS
-import streamlit as st
-
-def speak_text(text, filename="tts_output.mp3"):
+# 🔊 Speak Text
+def speak_text(text):
     try:
         tts = gTTS(text)
-        tts.save(filename)
-        audio_file = open(filename, "rb")
-        st.audio(audio_file.read(), format="audio/mp3")
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmpfile:
+            tts.save(tmpfile.name)
+            audio_file = open(tmpfile.name, "rb")
+            st.audio(audio_file.read(), format="audio/mp3")
     except Exception as e:
         st.error(f"🔊 TTS Error: {e}")
 
-#Editable mnemonics section 
-import streamlit as st
-import pandas as pd
+# 🎤 Record Voice Input
+def record_voice():
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("🎙️ Speak your medical question now...")
+        audio = r.listen(source)
+    try:
+        text = r.recognize_google(audio)
+        return text
+    except Exception as e:
+        return f"❌ Voice error: {e}"
 
-if "mnemonics_data" not in st.session_state:
-    st.session_state.mnemonics_data = []
+# 🔠 Navigation
+st.set_page_config(page_title="Clinical AI Assistant", layout="wide")
+st.sidebar.title("🧠 Clinical AI Assistant")
 
-st.subheader("🧠 Add/Edit Mnemonics")
+menu = st.sidebar.radio("Go to", (
+    "🏠 Home", "🧠 Ask AI", "📅 Study Planner", "📈 Study Charts",
+    "🧠 Daily Tracker", "🗃️ Fact Vault", "📋 Flashcards", "📝 Quizzes",
+    "📚 Mnemonics", "🩺 OSCE Simulations", "📆 Weekly Goals", "💡 Quotes"
+))
 
-with st.form("mnemonic_form"):
-    course = st.text_input("Course")
-    topic = st.text_input("Topic")
-    name = st.text_input("Mnemonic Name")
-    content = st.text_area("Mnemonic Content")
-    submitted = st.form_submit_button("➕ Save Mnemonic")
+st.title("👨‍⚕️ Clinical Assistant Dashboard")
 
-    if submitted and course and topic and name and content:
-        st.session_state.mnemonics_data.append({
-            "Course": course,
-            "Topic": topic,
-            "Name": name,
-            "Content": content
-        })
-        st.success("Mnemonic added!")
+# 🏠 HOME
+if menu == "🏠 Home":
+    st.header("Welcome to the Clinical AI Assistant")
+    st.markdown("""
+- Plan studies via Google Form  
+- Track study progress  
+- Log mood/focus/hours  
+- Store mnemonics and facts  
+- Ask BioBERT AI anything medical  
+- Simulate OSCE cases  
+""")
 
-st.markdown("---")
-st.subheader("📚 Saved Mnemonics")
+# 🧠 Ask AI
+elif menu == "🧠 Ask AI":
+    st.subheader("🧠 Medical Q&A Assistant (BioBERT)")
+    input_method = st.radio("Choose Input Method", ["🎤 Voice", "⌨️ Text"])
 
-if st.session_state.mnemonics_data:
-    df = pd.DataFrame(st.session_state.mnemonics_data)
-    st.dataframe(df, use_container_width=True)
+    if input_method == "🎤 Voice":
+        if st.button("🎙️ Record Question"):
+            q = record_voice()
+            st.write(f"**You asked:** {q}")
+            response = get_medical_answer(q)
+            st.success(response)
+            speak_text(response)
 
-    for i, row in df.iterrows():
-        st.markdown(f"**{row['Name']}** - _{row['Topic']} ({row['Course']})_")
-        st.markdown(f"`{row['Content']}`")
-        col1, col2 = st.columns(2)
-        with col1:
+    else:
+        question = st.text_input("Ask a medical question")
+        if st.button("Get Answer"):
+            response = get_medical_answer(question)
+            st.success(response)
+            speak_text(response)
+
+# 📅 Study Planner
+elif menu == "📅 Study Planner":
+    st.subheader("📅 Study Planner")
+    st.markdown('[📝 Fill Weekly Plan](https://forms.gle/2XEtmd7iZ19Uh6hc8)')
+    try:
+        df = pd.read_csv("https://docs.google.com/spreadsheets/d/1L3sLBdeV9R4xCAUfVBycsU1Wq7EVZklHifN2hvp9bnA/export?format=csv")
+        st.dataframe(df)
+    except Exception as e:
+        st.error(f"Failed to load planner: {e}")
+
+# 📈 Study Charts
+elif menu == "📈 Study Charts":
+    st.subheader("📈 Study Progress")
+    df = pd.DataFrame({
+        "Date": pd.date_range("2025-08-01", periods=7),
+        "Hours": [1.5, 2, 2.5, 3, 2, 3.5, 4]
+    })
+    st.line_chart(df.set_index("Date"))
+
+# 🧠 Daily Tracker
+elif menu == "🧠 Daily Tracker":
+    st.subheader("🧠 Daily Check-in")
+    with st.form("checkin_form"):
+        mood = st.selectbox("Mood", ["😊", "😐", "😞"])
+        focus = st.slider("Focus (1-10)", 1, 10)
+        hours = st.number_input("Hours Studied", min_value=0.0, step=0.5)
+        revised = st.text_area("What did you revise?")
+        save = st.form_submit_button("Save")
+    if save:
+        st.success("Saved!")
+
+# 📚 Mnemonics
+elif menu == "📚 Mnemonics":
+    if "mnemonics_data" not in st.session_state:
+        st.session_state.mnemonics_data = []
+
+    st.subheader("📚 Add/Edit Mnemonics")
+    with st.form("mnemonic_form"):
+        course = st.text_input("Course")
+        topic = st.text_input("Topic")
+        name = st.text_input("Mnemonic Name")
+        content = st.text_area("Content")
+        submit = st.form_submit_button("➕ Save")
+        if submit and all([course, topic, name, content]):
+            st.session_state.mnemonics_data.append({
+                "Course": course, "Topic": topic, "Name": name, "Content": content
+            })
+            st.success("Saved!")
+
+    st.markdown("### Saved Mnemonics")
+    if st.session_state.mnemonics_data:
+        df = pd.DataFrame(st.session_state.mnemonics_data)
+        st.dataframe(df)
+
+        for i, row in df.iterrows():
+            st.markdown(f"**{row['Name']}** - _{row['Topic']} ({row['Course']})_")
+            st.markdown(f"`{row['Content']}`")
             if st.button("🗑️ Delete", key=f"del_{i}"):
                 st.session_state.mnemonics_data.pop(i)
                 st.experimental_rerun()
 
-    if st.button("📤 Export Mnemonics to CSV"):
-        csv = pd.DataFrame(st.session_state.mnemonics_data).to_csv(index=False)
-        st.download_button("⬇️ Download Mnemonics CSV", csv, file_name="mnemonics.csv")
-else:
-    st.info("No mnemonics added yet.")
+# 📋 Flashcards
+elif menu == "📋 Flashcards":
+    if "flashcards" not in st.session_state:
+        st.session_state.flashcards = []
 
-#Editable flashcards
-if "flashcards" not in st.session_state:
-    st.session_state.flashcards = []
+    st.subheader("📋 Add Flashcards")
+    with st.form("flashcard_form"):
+        course = st.text_input("Course")
+        topic = st.text_input("Topic")
+        question = st.text_area("Question")
+        answer = st.text_area("Answer")
+        submit = st.form_submit_button("Save")
+        if submit and all([course, topic, question, answer]):
+            st.session_state.flashcards.append({
+                "Course": course, "Topic": topic,
+                "Question": question, "Answer": answer
+            })
+            st.success("Saved!")
 
-st.subheader("🗂️ Add Flashcards")
-
-with st.form("flashcard_form"):
-    f_course = st.text_input("Course")
-    f_topic = st.text_input("Topic")
-    f_question = st.text_area("Question")
-    f_answer = st.text_area("Answer")
-    flash_submit = st.form_submit_button("➕ Save Flashcard")
-
-    if flash_submit and f_course and f_topic and f_question and f_answer:
-        st.session_state.flashcards.append({
-            "Course": f_course,
-            "Topic": f_topic,
-            "Question": f_question,
-            "Answer": f_answer
-        })
-        st.success("Flashcard saved!")
-
-st.markdown("---")
-st.subheader("📋 Flashcards List")
-
-if st.session_state.flashcards:
+    st.markdown("### Flashcards")
     for i, card in enumerate(st.session_state.flashcards):
         st.markdown(f"**Q:** {card['Question']}")
         with st.expander("💡 View Answer"):
@@ -135,196 +210,90 @@ if st.session_state.flashcards:
         if st.button("🗑️ Delete", key=f"flash_del_{i}"):
             st.session_state.flashcards.pop(i)
             st.experimental_rerun()
-else:
-    st.info("No flashcards yet.")
 
-#Quizzes: Builder and Quiz mode
-if "quiz_data" not in st.session_state:
-    st.session_state.quiz_data = []
+# 📝 Quizzes
+elif menu == "📝 Quizzes":
+    if "quiz_data" not in st.session_state:
+        st.session_state.quiz_data = []
 
-st.subheader("📝 Create Quiz Question")
-
-with st.form("quiz_form"):
-    q_course = st.text_input("Course")
-    q_question = st.text_area("Question")
-    q_a = st.text_input("Option A")
-    q_b = st.text_input("Option B")
-    q_c = st.text_input("Option C")
-    q_d = st.text_input("Option D")
-    q_correct = st.selectbox("Correct Answer", ["A", "B", "C", "D"])
-    quiz_submit = st.form_submit_button("➕ Add Question")
-
-    if quiz_submit and q_course and q_question and q_a and q_b and q_c and q_d:
-        st.session_state.quiz_data.append({
-            "Course": q_course,
-            "Question": q_question,
-            "A": q_a,
-            "B": q_b,
-            "C": q_c,
-            "D": q_d,
-            "Correct": q_correct
-        })
-        st.success("Question added!")
-
-st.markdown("---")
-st.subheader("🎮 Take a Quiz")
-
-if st.session_state.quiz_data:
-    quiz_df = pd.DataFrame(st.session_state.quiz_data)
-    selected_course = st.selectbox("📚 Select Course", ["All"] + list(quiz_df["Course"].unique()))
-    if selected_course != "All":
-        quiz_df = quiz_df[quiz_df["Course"] == selected_course]
-
-    if "quiz_index" not in st.session_state:
-        st.session_state.quiz_index = 0
-        st.session_state.score = 0
-        st.session_state.answers = []
-
-    if st.session_state.quiz_index < len(quiz_df):
-        current = quiz_df.iloc[st.session_state.quiz_index]
-        st.markdown(f"**Q{st.session_state.quiz_index + 1}: {current['Question']}**")
-        user_choice = st.radio(
-            "Choose your answer:",
-            [f"A. {current['A']}", f"B. {current['B']}", f"C. {current['C']}", f"D. {current['D']}"],
-            key=f"quiz_q_{st.session_state.quiz_index}"
-        )
-
-        if st.button("✅ Submit Answer"):
-            selected_letter = user_choice.split(".")[0]
-            st.session_state.answers.append({
-                "Question": current["Question"],
-                "Your Answer": selected_letter,
-                "Correct Answer": current["Correct"],
-                "Is Correct": selected_letter == current["Correct"]
+    st.subheader("📝 Create Quiz")
+    with st.form("quiz_form"):
+        q = st.text_input("Question")
+        a = st.text_input("A")
+        b = st.text_input("B")
+        c = st.text_input("C")
+        d = st.text_input("D")
+        correct = st.selectbox("Correct", ["A", "B", "C", "D"])
+        submit = st.form_submit_button("Add")
+        if submit and all([q, a, b, c, d]):
+            st.session_state.quiz_data.append({
+                "Q": q, "A": a, "B": b, "C": c, "D": d, "Correct": correct
             })
-            if selected_letter == current["Correct"]:
-                st.session_state.score += 1
-            st.session_state.quiz_index += 1
-            st.experimental_rerun()
-    else:
-        total = len(st.session_state.answers)
-        st.success(f"🎉 Completed! Your score: {st.session_state.score}/{total}")
-        st.dataframe(pd.DataFrame(st.session_state.answers), use_container_width=True)
-        if st.button("🔁 Retake Quiz"):
-            del st.session_state.quiz_index
-            del st.session_state.score
-            del st.session_state.answers
-            st.experimental_rerun()
-else:
-    st.info("No quiz questions available.")
+            st.success("Question added!")
 
-import streamlit as st
-import pandas as pd
-import datetime
+    if st.session_state.quiz_data:
+        if "quiz_index" not in st.session_state:
+            st.session_state.quiz_index = 0
+            st.session_state.score = 0
+            st.session_state.answers = []
 
-# 🧠 Sidebar Navigation
-st.sidebar.title("🧠 Clinical AI Assistant")
-menu = st.sidebar.radio("Go to", (
-    "🏠 Home",
-    "📅 Study Planner",
-    "📈 Study Charts",
-    "🧠 Daily Tracker",
-    "🗃️ Fact Vault",
-    "🤖 GPT Chat",
-    "🩺 OSCE Simulations"
-))
-
-st.title("👨‍⚕️ Clinical Assistant Dashboard")
-
-# 🏠 Home Section
-if menu == "🏠 Home":
-    st.header("Welcome to the Clinical AI Assistant")
-    st.markdown("""
-    Use the sidebar to navigate between tools:
-    - Plan studies via Google Form
-    - Track study progress with charts
-    - Log your mood, focus, and hours
-    - Store important facts in vaults
-    - Ask GPT medical questions
-    - Simulate cases via OSCE tool
-    """)
-
-# 📅 Study Planner (Google Form link)
-elif menu == "📅 Study Planner":
-    st.subheader("📅 Study Planner")
-    st.markdown("Fill out your weekly or daily study goals using the form below:")
-
-    st.markdown('[📝 Open Study Planner Form](https://forms.gle/2XEtmd7iZ19Uh6hc8)', unsafe_allow_html=True)
-
-    try:
-        st.components.v1.iframe("https://forms.gle/2XEtmd7iZ19Uh6hc8", height=600)
-    except:
-        st.warning("Form embedding not supported here, click the link above.")
-
-    st.markdown("---")
-    st.markdown("### 📊 Submitted Study Goals")
-
-    sheet_url = "https://docs.google.com/spreadsheets/d/1L3sLBdeV9R4xCAUfVBycsU1Wq7EVZklHifN2hvp9bnA/export?format=csv"
-    try:
-        df = pd.read_csv(sheet_url)
-        st.dataframe(df, use_container_width=True)
-    except Exception as e:
-        st.error(f"❌ Failed to load Study Planner Sheet: {e}")
-
-# 📈 Study Charts
-elif menu == "📈 Study Charts":
-    st.subheader("📈 Study Progress Tracker")
-    st.write("Below is a sample chart for visualization:")
-    df = pd.DataFrame({
-        "Date": pd.date_range(start="2025-08-01", periods=7),
-        "Hours": [1.5, 2, 2.5, 3, 2, 3.5, 4]
-    })
-    st.line_chart(df.set_index("Date"))
-
-# 🧠 Daily Tracker
-elif menu == "🧠 Daily Tracker":
-    st.subheader("🧠 Daily Mood / Focus / Study Tracker")
-    with st.form("daily_checkin_form"):
-        mood = st.selectbox("Mood", ["😊 Happy", "😐 Neutral", "😞 Sad"])
-        focus = st.slider("Focus Level (1-10)", 1, 10, 5)
-        hours = st.number_input("Hours of Study", min_value=0.0, step=0.5)
-        revised = st.text_area("What did you revise today?")
-        submitted = st.form_submit_button("Save Entry")
-    if submitted:
-        st.success("✔️ Entry saved (mockup).")
+        index = st.session_state.quiz_index
+        if index < len(st.session_state.quiz_data):
+            current = st.session_state.quiz_data[index]
+            st.markdown(f"**Q{index+1}: {current['Q']}**")
+            choice = st.radio("Choose:", [f"A. {current['A']}", f"B. {current['B']}", f"C. {current['C']}", f"D. {current['D']}"])
+            if st.button("Submit"):
+                selected = choice[0]
+                correct = current["Correct"]
+                st.session_state.answers.append({
+                    "Q": current["Q"], "You": selected, "Correct": correct,
+                    "✅": selected == correct
+                })
+                if selected == correct:
+                    st.session_state.score += 1
+                st.session_state.quiz_index += 1
+                st.experimental_rerun()
+        else:
+            st.success(f"Score: {st.session_state.score}/{len(st.session_state.answers)}")
+            st.dataframe(pd.DataFrame(st.session_state.answers))
+            if st.button("🔁 Retake"):
+                del st.session_state.quiz_index
+                del st.session_state.score
+                del st.session_state.answers
+                st.experimental_rerun()
 
 # 🗃️ Fact Vault
 elif menu == "🗃️ Fact Vault":
-    st.subheader("🗃️ Medical Fact Vault")
     if "vault" not in st.session_state:
         st.session_state.vault = []
 
+    st.subheader("🗃️ Add Fact")
     with st.form("vault_form"):
         topic = st.text_input("Topic")
-        content = st.text_area("Important Fact")
-        save = st.form_submit_button("➕ Save Fact")
-
-    if save and topic and content:
-        st.session_state.vault.append({"Topic": topic, "Fact": content})
-        st.success("💾 Fact Saved")
+        fact = st.text_area("Fact")
+        save = st.form_submit_button("Save")
+        if save and topic and fact:
+            st.session_state.vault.append({"Topic": topic, "Fact": fact})
+            st.success("Saved!")
 
     if st.session_state.vault:
-        st.write("Saved Facts:")
-        vault_df = pd.DataFrame(st.session_state.vault)
-        st.dataframe(vault_df, use_container_width=True)
-
-# 🤖 GPT Chat (Placeholder)
-elif menu == "🤖 GPT Chat":
-    st.subheader("🤖 Ask GPT Medical Questions")
-    st.info("Use built-in AI chat in Colab app for now.")
+        st.dataframe(pd.DataFrame(st.session_state.vault))
 
 # 🩺 OSCE Simulations
 elif menu == "🩺 OSCE Simulations":
-    st.subheader("🩺 OSCE Case Simulation")
-    st.markdown("""
-    **Case 1: Abdominal Pain**
+    st.subheader("🩺 OSCE Simulation")
+    st.markdown("**Case:** Abdominal Pain")
+    st.text_area("Type your approach")
+    st.button("✅ Submit")
 
-    A 24-year-old male presents with right lower quadrant abdominal pain, nausea, and fever.
+# 📆 Weekly Goals
+elif menu == "📆 Weekly Goals":
+    st.subheader("📆 Weekly Goals (manual)")
+    goal = st.text_area("Enter your goal")
+    if st.button("Save Goal"):
+        st.success("Goal saved!")
 
-    - What is your differential diagnosis?
-    - What examinations would you perform?
-    - What investigations are needed?
-    - Outline your management plan.
-    """)
-    st.text_area("💬 Type your simulated response:")
-    st.button("✅ Submit Case")
+# 💡 Motivational Quotes
+elif menu == "💡 Quotes":
+    st.subheader("💡 Daily Quote")
+    st.info("“Success is not final, failure is not fatal: It is the courage to continue that counts.” – Winston Churchill")
