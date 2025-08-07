@@ -1,166 +1,79 @@
+# Clinical AI Assistant - Minimal Version
 import streamlit as st
 import pandas as pd
 import datetime
-import matplotlib.pyplot as plt
-from transformers import pipeline
-import random
 
-# Simulated models for AI (Hugging Face-style)
-@st.cache_resource
-def load_medical_model():
-    return pipeline("text-generation", model="distilgpt2")
-
-medical_ai = load_medical_model()
-
-# App State
-if "flashcards" not in st.session_state:
-    st.session_state.flashcards = []
-
-if "quizzes" not in st.session_state:
-    st.session_state.quizzes = []
-
-if "notes" not in st.session_state:
-    st.session_state.notes = ""
-
-if "checkins" not in st.session_state:
-    st.session_state.checkins = []
-
-if "reminders" not in st.session_state:
-    st.session_state.reminders = []
-
-# Sidebar Menu
-menu = st.sidebar.radio("📌 Menu", [
-    "🏠 Home",
-    "🧠 Medical AI",
-    "📋 Flashcards",
-    "📝 Quiz Section",
-    "💡 Daily Quote",
-    "📚 Notes Vault",
-    "🗓️ Study Planner",
-    "🤖 Backup AI",
-    "📊 Study Chart",
-    "📆 Daily Check-In",
-    "📤 Export Progress"
+# ---------------- MENU ------------------
+menu = st.sidebar.selectbox("📋 Menu", [
+    "🤖 AI Chat", "🧠 Flashcards", "📝 Quizzes",
+    "💡 Daily Quote", "📚 Notes Vault", "⏰ Study Planner",
+    "📊 Study Chart", "📅 Daily Check-in", "⬇️ Export Progress"
 ])
 
-# Pages
-if menu == "🏠 Home":
-    st.title("🏥 Clinical AI Assistant")
-    st.markdown("Welcome! Choose an option from the sidebar.")
+# ---------------- AI CHAT ------------------
+if menu == "🤖 AI Chat":
+    st.title("💬 Clinical AI Chat Assistant")
+    user_input = st.text_input("Ask a medical question")
+    if st.button("Get Answer"):
+        st.write("🔄 (Placeholder) Answer from AI model goes here...")
 
-elif menu == "🧠 Medical AI":
-    st.header("Ask a Medical Question")
-    query = st.text_input("Type your question here:")
-    if st.button("Ask AI"):
-        if query:
-            response = medical_ai(query, max_length=50)[0]['generated_text']
-            st.success(response)
-
-elif menu == "📋 Flashcards":
-    st.header("🧠 Flashcards")
-    course = st.text_input("Course")
+# ---------------- FLASHCARDS ------------------
+elif menu == "🧠 Flashcards":
+    st.title("🧠 Medical Flashcards")
     topic = st.text_input("Topic")
-    name = st.text_input("Mnemonic Name")
-    content = st.text_area("Mnemonic Content")
+    content = st.text_area("Flashcard Content")
     if st.button("Save Flashcard"):
-        st.session_state.flashcards.append({"course": course, "topic": topic, "name": name, "content": content})
-        st.success("Saved!")
+        st.success("✅ Flashcard saved (placeholder).")
+    st.button("Edit Flashcard")
+    st.button("Delete Flashcard")
 
-    st.subheader("Saved Flashcards")
-    for i, card in enumerate(st.session_state.flashcards):
-        st.markdown(f"**{card['name']}** — *{card['topic']}*")
-        st.write(card['content'])
-        if st.button(f"Edit {i}"):
-            st.session_state.flashcards[i] = {
-                "course": st.text_input("Course", value=card['course'], key=f"ec{i}"),
-                "topic": st.text_input("Topic", value=card['topic'], key=f"et{i}"),
-                "name": st.text_input("Name", value=card['name'], key=f"en{i}"),
-                "content": st.text_area("Content", value=card['content'], key=f"ed{i}")
-            }
-        if st.button(f"Delete {i}"):
-            st.session_state.flashcards.pop(i)
-            st.experimental_rerun()
-
-elif menu == "📝 Quiz Section":
-    st.header("📋 Quizzes")
-    question = st.text_input("Question")
-    answer = st.text_input("Answer")
+# ---------------- QUIZZES ------------------
+elif menu == "📝 Quizzes":
+    st.title("📝 Medical Quiz")
+    question = st.text_input("Enter a question")
+    answer = st.text_input("Enter the answer")
     if st.button("Save Quiz"):
-        st.session_state.quizzes.append({"q": question, "a": answer})
-        st.success("Quiz Saved!")
+        st.success("✅ Quiz saved (placeholder).")
+    st.button("Edit Quiz")
+    st.button("Delete Quiz")
 
-    st.subheader("Saved Quizzes")
-    for i, q in enumerate(st.session_state.quizzes):
-        st.markdown(f"**Q:** {q['q']}")
-        st.markdown(f"**A:** {q['a']}")
-        if st.button(f"Edit Quiz {i}"):
-            st.session_state.quizzes[i] = {
-                "q": st.text_input("Q", value=q['q'], key=f"qq{i}"),
-                "a": st.text_input("A", value=q['a'], key=f"qa{i}")
-            }
-        if st.button(f"Delete Quiz {i}"):
-            st.session_state.quizzes.pop(i)
-            st.experimental_rerun()
-
+# ---------------- DAILY QUOTE ------------------
 elif menu == "💡 Daily Quote":
-    st.header("💡 Daily Medical Quote")
-    quotes = [
-        "“Wherever the art of Medicine is loved, there is also a love of Humanity.” – Hippocrates",
-        "“Medicine is a science of uncertainty and an art of probability.” – William Osler",
-        "“The good physician treats the disease; the great physician treats the patient.” – Osler"
-    ]
-    st.success(random.choice(quotes))
+    st.title("💡 Medical Motivation")
+    st.info("🩺 'Medicine is a science of uncertainty and an art of probability.' - William Osler")
 
+# ---------------- NOTES VAULT ------------------
 elif menu == "📚 Notes Vault":
-    st.header("🗂️ Medical Notes Vault")
-    st.session_state.notes = st.text_area("Edit your medical notes here:", value=st.session_state.notes)
-    if st.button("Save Notes"):
-        st.success("Notes saved!")
+    st.title("📚 Editable Notes Vault")
+    note = st.text_area("Type your note here")
+    if st.button("Save Note"):
+        st.success("✅ Note saved (placeholder).")
+    st.button("Edit Note")
+    st.button("Delete Note")
 
-elif menu == "🗓️ Study Planner":
-    st.header("📆 Study Planner / Reminder")
-    task = st.text_input("What do you want to study?")
-    date = st.date_input("Date", datetime.date.today())
-    if st.button("Add Reminder"):
-        st.session_state.reminders.append({"task": task, "date": date})
-        st.success("Reminder added!")
-    for r in st.session_state.reminders:
-        st.write(f"📌 {r['task']} on {r['date']}")
+# ---------------- STUDY PLANNER ------------------
+elif menu == "⏰ Study Planner":
+    st.title("⏰ Study Reminder and Planner")
+    task = st.text_input("What do you want to study today?")
+    time = st.time_input("Set reminder time", datetime.time(10, 0))
+    if st.button("Set Reminder"):
+        st.success(f"⏰ Reminder set for {time} - Task: {task}")
 
-elif menu == "🤖 Backup AI":
-    st.header("🤖 Backup Chatbot (simulated response)")
-    backup_query = st.text_input("Ask ChatGPT backup:")
-    if st.button("Ask Backup"):
-        if backup_query:
-            st.info(f"🔁 This is a simulated backup response for: **{backup_query}**")
-
+# ---------------- STUDY CHART ------------------
 elif menu == "📊 Study Chart":
-    st.header("📈 Study Chart")
-    if st.session_state.checkins:
-        df = pd.DataFrame(st.session_state.checkins)
-        st.line_chart(df.set_index("date")[["focus", "hours"]])
-    else:
-        st.warning("No check-in data yet.")
+    st.title("📊 Study Progress Chart (Coming Soon)")
+    st.warning("📌 Feature under development. Charts will be displayed here.")
 
-elif menu == "📆 Daily Check-In":
-    st.header("📋 Daily Study Check-In")
-    mood = st.selectbox("Mood", ["😃 Happy", "😐 Neutral", "😔 Tired"])
-    focus = st.slider("Focus Level (0-10)", 0, 10)
-    hours = st.slider("Hours Studied", 0, 12)
+# ---------------- DAILY CHECK-IN ------------------
+elif menu == "📅 Daily Check-in":
+    st.title("📅 Daily Study Check-in")
+    mood = st.selectbox("How do you feel today?", ["😃 Great", "🙂 Okay", "😔 Tired"])
+    focus = st.slider("Focus Level", 0, 10, 5)
+    hours = st.slider("Hours studied", 0, 12, 1)
     if st.button("Submit Check-in"):
-        st.session_state.checkins.append({
-            "date": str(datetime.date.today()),
-            "mood": mood,
-            "focus": focus,
-            "hours": hours
-        })
-        st.success("Check-in saved!")
+        st.success("✅ Check-in submitted (placeholder).")
 
-elif menu == "📤 Export Progress":
-    st.header("📁 Export Study Progress")
-    if st.session_state.checkins:
-        df = pd.DataFrame(st.session_state.checkins)
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("Download Check-in Data as CSV", data=csv, file_name="study_checkins.csv")
-    else:
-        st.warning("No check-in data to export.")
+# ---------------- EXPORT ------------------
+elif menu == "⬇️ Export Progress":
+    st.title("⬇️ Export Your Data (Coming Soon)")
+    st.warning("📦 Export to CSV will be available in future versions.")
