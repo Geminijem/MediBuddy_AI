@@ -1,7 +1,9 @@
 streamlit
-transformers
-torch
+matplotlib
+pandas
+openai
 gtts
 speechrecognition
-bs4
-requests
+transformers
+torch
+scikit-learn
