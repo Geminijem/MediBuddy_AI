@@ -1,117 +1,161 @@
 import streamlit as st
+import random
+from datetime import datetime
+import pyttsx3
 import speech_recognition as sr
-from gtts import gTTS
-import os
-import torch
-from transformers import AutoTokenizer, AutoModelForQuestionAnswering, pipeline
-import requests
-import re
-from bs4 import BeautifulSoup
-import tempfile
+from fpdf import FPDF
 
-# ---------------------- Streamlit App Config ----------------------
-st.set_page_config(page_title="Clinical AI Assistant", layout="centered")
-st.title("👨‍⚕️ Clinical AI Assistant")
+# ---------------------------- Voice Support ----------------------------
+engine = pyttsx3.init()
+recognizer = sr.Recognizer()
 
-# ---------------------- Load BioBERT QA pipeline ----------------------
-st.info("Loading AI model... (BioBERT)")
-model_name = "ktrapeznikov/biobert_v1.1_pubmed_squad_v2"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForQuestionAnswering.from_pretrained(model_name)
-qa_pipeline = pipeline("question-answering", model=model, tokenizer=tokenizer)
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
 
-# ---------------------- Wikipedia Context Search ----------------------
-def search_wikipedia_summary(query):
-    try:
-        search_url = f"https://en.wikipedia.org/w/index.php?search={query.replace(' ', '+')}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        search_response = requests.get(search_url, headers=headers, timeout=20)
-        soup = BeautifulSoup(search_response.text, 'html.parser')
-        result_link = soup.select_one("ul.mw-search-results li a")
-        article_url = "https://en.wikipedia.org" + result_link["href"] if result_link else search_response.url
-        article_response = requests.get(article_url, headers=headers, timeout=20)
-        soup = BeautifulSoup(article_response.text, 'html.parser')
-        for para in soup.select("div.mw-parser-output > p"):
-            text = para.get_text().strip()
-            if len(text) > 100:
-                text = re.sub(r'\[\d+\]', '', text)  # remove citations
-                return text
-        return "⚠️ Couldn't extract readable Wikipedia paragraph."
-    except Exception as e:
-        return f"❌ Wikipedia error: {str(e)}"
-
-# ---------------------- Answer Medical Question ----------------------
-def get_medical_answer(question):
-    try:
-        context = search_wikipedia_summary(question)
-        if "❌" in context or "⚠️" in context:
-            return f"📚 Wikipedia says:\n{context}"
-        result = qa_pipeline(question=question, context=context)
-        answer = result['answer']
-        if len(answer.strip()) < 5:
-            raise ValueError("Too short")
-        return f"🤖 AI (BioBERT) says:\n{answer.strip()}"
-    except Exception:
-        return f"📚 Wikipedia says:\n{search_wikipedia_summary(question)}"
-
-# ---------------------- Voice Input Handler ----------------------
-def listen_to_voice():
-    recognizer = sr.Recognizer()
+def listen():
     with sr.Microphone() as source:
-        st.info("🎤 Listening... Speak now!")
-        audio = recognizer.listen(source, timeout=5, phrase_time_limit=10)
-    try:
-        st.success("✅ Voice captured. Transcribing...")
-        text = recognizer.recognize_google(audio)
-        return text
-    except sr.UnknownValueError:
-        return "❌ Could not understand audio."
-    except sr.RequestError:
-        return "❌ Could not request results."
+        st.info("Listening...")
+        audio = recognizer.listen(source, timeout=5)
+        try:
+            query = recognizer.recognize_google(audio)
+            st.success(f"You said: {query}")
+            return query
+        except sr.UnknownValueError:
+            st.warning("Sorry, I could not understand your voice.")
+        except sr.RequestError:
+            st.error("Could not request results. Check your internet.")
+    return ""
 
-# ---------------------- Text-to-Speech Handler ----------------------
-def speak_text(text):
-    try:
-        tts = gTTS(text)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-            tts.save(fp.name)
-            st.audio(fp.name, format="audio/mp3")
-    except Exception as e:
-        st.error(f"🔊 TTS Error: {e}")
+# ---------------------------- Clinical Q&A ----------------------------
+def clinical_response(user_input):
+    if "pancreatitis" in user_input.lower():
+        return "Pancreatitis is inflammation of the pancreas, often caused by gallstones or alcohol."
+    elif "asthma" in user_input.lower():
+        return "Asthma is a chronic condition causing airway inflammation and difficulty in breathing."
+    return "Sorry, I don't know that yet. Please rephrase or try a simpler term."
 
-# ---------------------- Sidebar Navigation ----------------------
-menu = st.sidebar.radio("🧠 Navigate", [
-    "🏠 Home",
-    "🎤 Ask Medical Question (Voice)",
-    "⌨️ Ask Medical Question (Text)"
-])
+# ---------------------------- Flashcard Quiz ----------------------------
+quiz_data = {
+    "Pharmacology": {"What is the antidote for heparin?": "Protamine sulfate"},
+    "Pathology": {"What cell is characteristic in Hodgkin lymphoma?": "Reed-Sternberg cell"}
+}
 
-# ---------------------- 🏠 Home ----------------------
-if menu == "🏠 Home":
-    st.subheader("📋 Welcome")
+# ---------------------------- Mnemonics ----------------------------
+mnemonics = {
+    "Pharmacology": {"Beta-blockers": "A-M are cardioselective, N-Z are non-selective"},
+    "Pathology": {"Causes of clubbing": "CLUB - Cyanotic heart disease, Lung disease, Ulcerative colitis, Biliary cirrhosis"}
+}
+
+# ---------------------------- OSCE Simulation ----------------------------
+osce_cases = [
+    {"case": "Patient with chest pain", "questions": ["What are the possible causes?", "How would you manage it?"]},
+    {"case": "Unconscious patient", "questions": ["What is your immediate action?", "List differential diagnoses."]}
+]
+
+# ---------------------------- Study Planner ----------------------------
+study_goals = []
+
+# ---------------------------- Motivation + Mood Tracker ----------------------------
+daily_quotes = [
+    "Keep pushing. You're closer than you think.",
+    "Every expert was once a beginner.",
+    "Study smart, not just hard."
+]
+
+# ---------------------------- PDF Export ----------------------------
+def export_summary(goals, mood, notes):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt="Study Summary", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Date: {datetime.today().strftime('%Y-%m-%d')}", ln=True)
+    pdf.cell(200, 10, txt=f"Mood: {mood}", ln=True)
+    pdf.multi_cell(0, 10, txt="Goals:\n" + "\n".join(goals))
+    pdf.multi_cell(0, 10, txt=f"Notes:\n{notes}")
+    pdf.output("/mnt/data/study_summary.pdf")
+    st.success("📄 Study summary exported successfully!")
+    st.download_button("Download PDF", data=open("/mnt/data/study_summary.pdf", "rb"), file_name="study_summary.pdf")
+
+# ---------------------------- Streamlit UI ----------------------------
+st.set_page_config(page_title="Clinical AI Assistant", layout="wide")
+st.sidebar.title("Navigation")
+section = st.sidebar.radio("Go to", ["Home", "Ask AI", "Flashcards Quiz", "OSCE Simulation", "Mnemonics", "Study Planner", "Mood + Quote", "Export Summary"])
+
+# ---------------------------- Sections ----------------------------
+if section == "Home":
+    st.title("Clinical AI Assistant Dashboard")
     st.markdown("""
-    **Clinical AI Assistant Features:**
-    - 🤖 Ask medical questions via BioBERT AI  
-    - 🎤 Use voice input to ask  
-    - 🔊 Get spoken answers back  
-    - 📚 Wikipedia context-powered AI  
+    Welcome to your all-in-one MBBS study assistant!
+    
+    **Features:**
+    - Clinical AI Q&A (text/voice)
+    - Flashcards + Quiz
+    - OSCE Simulation
+    - Mnemonics Memory Bank
+    - Study Goals & Planner
+    - Daily Mood Tracker & Quotes
+    - Export Study Summaries as PDF
     """)
 
-# ---------------------- 🎤 Ask via Voice ----------------------
-elif menu == "🎤 Ask Medical Question (Voice)":
-    st.subheader("🎤 Voice Medical Q&A")
-    if st.button("🎙️ Start Listening"):
-        question = listen_to_voice()
-        st.write(f"🗣️ You asked: `{question}`")
-        response = get_medical_answer(question)
-        st.success(response)
-        speak_text(response)
+elif section == "Ask AI":
+    st.header("Ask Medical Questions")
+    input_method = st.radio("Choose input method:", ["Text", "Voice"])
+    user_query = ""
+    if input_method == "Text":
+        user_query = st.text_input("Type your question here:")
+    else:
+        if st.button("🎤 Listen"):
+            user_query = listen()
+    if user_query:
+        reply = clinical_response(user_query)
+        st.success(reply)
+        if st.button("🔊 Speak Answer"):
+            speak(reply)
 
-# ---------------------- ⌨️ Ask via Text ----------------------
-elif menu == "⌨️ Ask Medical Question (Text)":
-    st.subheader("⌨️ Text-based Medical Q&A")
-    user_q = st.text_input("Ask a medical question")
-    if st.button("Get Answer") and user_q:
-        response = get_medical_answer(user_q)
-        st.success(response)
-        speak_text(response)
+elif section == "Flashcards Quiz":
+    st.header("Flashcard Quiz")
+    subject = st.selectbox("Choose Subject", list(quiz_data.keys()))
+    for question, answer in quiz_data[subject].items():
+        user_ans = st.text_input(f"{question}")
+        if user_ans:
+            if user_ans.strip().lower() == answer.lower():
+                st.success("✅ Correct!")
+            else:
+                st.error(f"❌ Incorrect! Correct answer: {answer}")
+
+elif section == "OSCE Simulation":
+    st.header("OSCE Simulator")
+    for i, case in enumerate(osce_cases):
+        with st.expander(f"Case {i+1}: {case['case']}"):
+            for q in case["questions"]:
+                st.write(f"Q: {q}")
+                st.text_area("Your Answer")
+
+elif section == "Mnemonics":
+    st.header("Pharma/Patho Mnemonics")
+    subject = st.selectbox("Select Subject", list(mnemonics.keys()))
+    topic = st.selectbox("Select Topic", list(mnemonics[subject].keys()))
+    st.write("Mnemonic:", mnemonics[subject][topic])
+
+elif section == "Study Planner":
+    st.header("Your Study Goals")
+    new_goal = st.text_input("Add new goal:")
+    if st.button("Add Goal"):
+        study_goals.append(new_goal)
+    if study_goals:
+        for i, goal in enumerate(study_goals):
+            st.write(f"{i+1}. {goal}")
+
+elif section == "Mood + Quote":
+    st.header("Track Mood & Daily Quote")
+    mood = st.selectbox("How do you feel today?", ["😊 Happy", "😐 Okay", "😔 Tired"])
+    st.success(f"Quote of the Day: {random.choice(daily_quotes)}")
+    notes = st.text_area("Study Notes or Reflections")
+
+elif section == "Export Summary":
+    st.header("📤 Export Study Summary")
+    if st.button("Export as PDF"):
+        mood = st.selectbox("Mood for the day", ["😊 Happy", "😐 Okay", "😔 Tired"])
+        notes = st.text_area("Notes:")
+        export_summary(study_goals, mood, notes)
