@@ -2,7 +2,6 @@
 # Paste into one Colab cell and run.
 
 # --------- 1) Install dependencies ----------
-!pip install -q streamlit pyngrok pandas fpdf matplotlib
 
 # --------- 2) Write the full Streamlit app to app.py ----------
 
