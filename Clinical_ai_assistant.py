@@ -1,225 +1,156 @@
-# app.py
+# ===== Full single-cell Colab script: Clinical Study Assistant (Non-AI) =====
+# Paste into one Colab cell and run.
+
+# --------- 1) Install dependencies ----------
+!pip install -q streamlit pyngrok pandas fpdf matplotlib
+
+# --------- 2) Write the full Streamlit app to app.py ----------
+
+app_code = r'''
 import streamlit as st
-import json, os, io
-from datetime import datetime
-from fpdf import FPDF
 
-# ----- Config -----
-st.set_page_config(page_title="Clinical Study Assistant (Non-AI)", layout="wide")
+# ---- Page Config ----
+st.set_page_config(
+    page_title="Clinical Study AI Assistant",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-DATA_DIR = "data"
-PLANS_FILE = os.path.join(DATA_DIR, "plans.json")
-NOTES_FILE = os.path.join(DATA_DIR, "notes.json")
+# ---- Session State Initialization ----
+if 'mnemonics' not in st.session_state:
+    st.session_state.mnemonics = []
+if 'flashcards' not in st.session_state:
+    st.session_state.flashcards = []
+if 'quizzes' not in st.session_state:
+    st.session_state.quizzes = []
+if 'study_plans' not in st.session_state:
+    st.session_state.study_plans = []
+if 'daily_checkins' not in st.session_state:
+    st.session_state.daily_checkins = []
+if 'study_reminders' not in st.session_state:
+    st.session_state.study_reminders = []
+if 'osce_cases' not in st.session_state:
+    st.session_state.osce_cases = []
+if 'notes' not in st.session_state:
+    st.session_state.notes = []
+if 'weekly_goals' not in st.session_state:
+    st.session_state.weekly_goals = []
 
-os.makedirs(DATA_DIR, exist_ok=True)
+# ---- Sidebar Menu ----
+st.sidebar.title("Menu")
+menu = st.sidebar.radio("Go to", [
+    "Mnemonics", "Flashcards", "Quizzes", "Study Planner", "Daily Check-in",
+    "Study Reminder", "OSCE Simulation", "Notes / Medical Vault", "Study Chart",
+    "Weekly Goals", "ChatGPT Research"
+])
 
-# ----- Helpers: load/save -----
-def load_json(path):
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+# --- Mnemonics ---
+def mnemonics_page():
+    st.header("Mnemonics")
+    with st.form("add_mnemonic_form"):
+        course = st.text_input("Course")
+        topic = st.text_input("Topic")
+        name = st.text_input("Mnemonic Name")
+        content = st.text_area("Mnemonic Content")
+        submitted = st.form_submit_button("Add Mnemonic")
+        if submitted:
+            st.session_state.mnemonics.append({
+                "course": course,
+                "topic": topic,
+                "name": name,
+                "content": content
+            })
+            st.success("Mnemonic added!")
+    for i, m in enumerate(st.session_state.mnemonics):
+        with st.expander(f"{m['name']} ({m['course']} - {m['topic']})", expanded=False):
+            st.write(m['content'])
+            if st.button(f"Delete Mnemonic {i}"):
+                st.session_state.mnemonics.pop(i)
+                st.experimental_rerun()
 
-def save_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+# --- Flashcards ---
+def flashcards_page():
+    st.header("Flashcards")
+    with st.form("add_flashcard_form"):
+        question = st.text_input("Question")
+        answer = st.text_area("Answer")
+        submitted = st.form_submit_button("Add Flashcard")
+        if submitted:
+            st.session_state.flashcards.append({"question": question, "answer": answer})
+            st.success("Flashcard added!")
+    for i, f in enumerate(st.session_state.flashcards):
+        with st.expander(f"Q: {f['question']}", expanded=False):
+            st.write(f"A: {f['answer']}")
+            if st.button(f"Delete Flashcard {i}"):
+                st.session_state.flashcards.pop(i)
+                st.experimental_rerun()
 
-# ----- Helpers: PDF export -----
-def text_to_pdf_bytes(title, items):
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, title, ln=True)
-    pdf.ln(4)
-    pdf.set_font("Arial", size=12)
-    for i, it in enumerate(items, 1):
-        # simple wrap: write multi_cell
-        pdf.set_font("Arial", "B", 12)
-        pdf.cell(0, 8, f"{i}.", ln=True)
-        pdf.set_font("Arial", size=12)
-        pdf.multi_cell(0, 7, str(it))
-        pdf.ln(2)
-    buff = io.BytesIO()
-    pdf.output(buff)
-    buff.seek(0)
-    return buff.read()
+# --- Quizzes ---
+def quizzes_page():
+    st.header("Quizzes")
+    st.info("Coming soon...")
 
-# ----- Load data into session -----
-if "plans" not in st.session_state:
-    st.session_state.plans = load_json(PLANS_FILE)
-if "notes" not in st.session_state:
-    st.session_state.notes = load_json(NOTES_FILE)
+# --- Study Planner ---
+def study_planner_page():
+    st.header("Study Planner")
+    st.info("Coming soon...")
 
-# editing indices
-if "plan_edit_index" not in st.session_state:
-    st.session_state.plan_edit_index = None
-if "note_edit_index" not in st.session_state:
-    st.session_state.note_edit_index = None
+# --- Daily Check-in ---
+def daily_checkin_page():
+    st.header("Daily Check-in")
+    st.info("Coming soon...")
 
-# ----- Sidebar navigation -----
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["🏠 Dashboard", "📅 Study Planner", "📒 Notes / Vault", "⚙️ Settings"])
+# --- Study Reminder ---
+def study_reminder_page():
+    st.header("Study Reminder")
+    st.info("Coming soon...")
 
-# ----- Dashboard -----
-if page == "🏠 Dashboard":
-    st.title("🩺 Clinical Study Assistant — Dashboard")
-    st.markdown("**Quick actions**")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        if st.button("➕ Add Plan"):
-            st.session_state.plan_edit_index = None
-            st.experimental_set_query_params(page="planner")
-            st.experimental_rerun()
-    with c2:
-        if st.button("📝 Add Note"):
-            st.session_state.note_edit_index = None
-            st.experimental_set_query_params(page="notes")
-            st.experimental_rerun()
-    with c3:
-        if st.button("📥 Export All Data"):
-            all_data = {"plans": st.session_state.plans, "notes": st.session_state.notes}
-            st.download_button("Download JSON", json.dumps(all_data, indent=2), file_name="clinical_data_backup.json", mime="application/json")
+# --- OSCE Simulation ---
+def osce_simulation_page():
+    st.header("OSCE Simulation")
+    st.info("Coming soon...")
 
-    st.markdown("---")
-    st.subheader("Today / Summary")
-    st.write(f"Plans: **{len(st.session_state.plans)}** — Notes: **{len(st.session_state.notes)}**")
-    if st.session_state.plans:
-        st.markdown("**Next plan (most recent):**")
-        st.info(st.session_state.plans[-1])
-    else:
-        st.info("No plans yet — add a plan from Study Planner.")
+# --- Notes / Medical Vault ---
+def notes_page():
+    st.header("Notes / Medical Vault")
+    st.info("Coming soon...")
 
-# ----- Study Planner -----
-elif page == "📅 Study Planner":
-    st.title("📅 Study Planner")
-    st.markdown("Add daily study plans, edit or remove them. Export as JSON/TXT/PDF.")
+# --- Study Chart ---
+def study_chart_page():
+    st.header("Study Chart")
+    st.info("Coming soon...")
 
-    # Add or edit form
-    with st.form("plan_form", clear_on_submit=False):
-        st.subheader("➕ Add / Edit Plan")
-        date_input = st.date_input("Date", value=datetime.today())
-        time_input = st.time_input("Time (optional)", value=datetime.now().time())
-        topic = st.text_input("Topic / Title")
-        details = st.text_area("Details / Plan")
-        submit = st.form_submit_button("Save Plan")
+# --- Weekly Goals ---
+def weekly_goals_page():
+    st.header("Weekly Goals")
+    st.info("Coming soon...")
 
-    if submit:
-        entry = {
-            "date": date_input.isoformat(),
-            "time": time_input.strftime("%H:%M:%S") if time_input else "",
-            "topic": topic.strip(),
-            "details": details.strip(),
-            "created_at": datetime.utcnow().isoformat()
-        }
-        if st.session_state.plan_edit_index is None:
-            st.session_state.plans.append(entry)
-            st.success("Plan added.")
-        else:
-            st.session_state.plans[st.session_state.plan_edit_index] = entry
-            st.session_state.plan_edit_index = None
-            st.success("Plan updated.")
-        save_json(PLANS_FILE, st.session_state.plans)
+# --- ChatGPT Research ---
+def chatgpt_research_page():
+    st.header("ChatGPT Research")
+    st.info("Coming soon...")
 
-    st.markdown("---")
-    st.subheader("📂 Saved Plans")
-    if st.session_state.plans:
-        for idx, p in enumerate(st.session_state.plans):
-            cols = st.columns((8, 1, 1))
-            with cols[0]:
-                st.markdown(f"**{idx+1}. {p.get('topic','(no title)')}** — {p.get('date')} {p.get('time')}")
-                st.write(p.get("details"))
-            with cols[1]:
-                if st.button("✏️ Edit", key=f"edit_plan_{idx}"):
-                    st.session_state.plan_edit_index = idx
-                    # pre-fill by placing values and re-render: set query param to reload page
-                    st.experimental_rerun()
-            with cols[2]:
-                if st.button("🗑️ Delete", key=f"del_plan_{idx}"):
-                    st.session_state.plans.pop(idx)
-                    save_json(PLANS_FILE, st.session_state.plans)
-                    st.experimental_rerun()
-        st.markdown("---")
-        # Exports
-        json_btn = st.download_button("Download Plans (JSON)", json.dumps(st.session_state.plans, indent=2), file_name="plans.json", mime="application/json")
-        txt_content = "\n\n".join([f"{i+1}. {p.get('topic','')} ({p.get('date')})\n{p.get('details','')}" for i,p in enumerate(st.session_state.plans)])
-        st.download_button("Download Plans (TXT)", txt_content, file_name="plans.txt", mime="text/plain")
-        pdf_bytes = text_to_pdf_bytes("Study Plans", [f"{p.get('topic','')} - {p.get('date')} {p.get('time')}\n{p.get('details','')}" for p in st.session_state.plans])
-        st.download_button("Download Plans (PDF)", pdf_bytes, file_name="plans.pdf", mime="application/pdf")
-    else:
-        st.info("No plans yet — add one above.")
-
-# ----- Notes / Medical Vault -----
-elif page == "📒 Notes / Vault":
-    st.title("📒 Notes & Medical Vault")
-    st.markdown("Store notes, mnemonics, exam tips. Edit/delete and export easily.")
-
-    # Create / Edit note
-    with st.form("note_form", clear_on_submit=False):
-        st.subheader("➕ Add / Edit Note")
-        note_title = st.text_input("Title", value=(st.session_state.notes[st.session_state.note_edit_index].get("title") if st.session_state.note_edit_index is not None and st.session_state.note_edit_index < len(st.session_state.notes) else ""))
-        note_body = st.text_area("Note", value=(st.session_state.notes[st.session_state.note_edit_index].get("body") if st.session_state.note_edit_index is not None and st.session_state.note_edit_index < len(st.session_state.notes) else ""), height=200)
-        note_tags = st.text_input("Tags (comma separated)", value=(",".join(st.session_state.notes[st.session_state.note_edit_index].get("tags",[])) if st.session_state.note_edit_index is not None and st.session_state.note_edit_index < len(st.session_state.notes) else ""))
-        save_note = st.form_submit_button("Save Note")
-        cancel = st.form_submit_button("Cancel")
-
-    if save_note:
-        note_entry = {
-            "title": note_title.strip(),
-            "body": note_body.strip(),
-            "tags": [t.strip() for t in note_tags.split(",") if t.strip()],
-            "updated_at": datetime.utcnow().isoformat()
-        }
-        if st.session_state.note_edit_index is None:
-            st.session_state.notes.append(note_entry)
-            st.success("Note saved.")
-        else:
-            st.session_state.notes[st.session_state.note_edit_index] = note_entry
-            st.session_state.note_edit_index = None
-            st.success("Note updated.")
-        save_json(NOTES_FILE, st.session_state.notes)
-
-    if cancel:
-        st.session_state.note_edit_index = None
-        st.experimental_rerun()
-
-    st.markdown("---")
-    st.subheader("📂 Saved Notes")
-    if st.session_state.notes:
-        for idx, n in enumerate(st.session_state.notes):
-            left, right = st.columns([9,1])
-            with left:
-                st.markdown(f"**{idx+1}. {n.get('title','(no title)')}**  — _tags: {', '.join(n.get('tags',[]))}_")
-                st.write(n.get("body",""))
-            with right:
-                if st.button("✏️", key=f"edit_note_{idx}"):
-                    st.session_state.note_edit_index = idx
-                    st.experimental_rerun()
-                if st.button("🗑️", key=f"del_note_{idx}"):
-                    st.session_state.notes.pop(idx)
-                    save_json(NOTES_FILE, st.session_state.notes)
-                    st.experimental_rerun()
-        st.markdown("---")
-        # Exports for notes
-        st.download_button("Download Notes (JSON)", json.dumps(st.session_state.notes, indent=2), file_name="notes.json", mime="application/json")
-        notes_txt = "\n\n".join([f"{i+1}. {n.get('title','')}\n{n.get('body','')}" for i,n in enumerate(st.session_state.notes)])
-        st.download_button("Download Notes (TXT)", notes_txt, file_name="notes.txt", mime="text/plain")
-        pdf_notes = text_to_pdf_bytes("Notes & Vault", [f"{n.get('title','')}\n{n.get('body','')}" for n in st.session_state.notes])
-        st.download_button("Download Notes (PDF)", pdf_notes, file_name="notes.pdf", mime="application/pdf")
-    else:
-        st.info("No notes yet. Use the form above to create one.")
-
-# ----- Settings -----
-elif page == "⚙️ Settings":
-    st.title("⚙️ Settings")
-    st.markdown("Data files are stored locally in the app's `data/` folder.")
-    if st.button("Reset all data (delete plans & notes)"):
-        if st.confirm("Are you sure? This will permanently delete saved notes & plans."):
-            st.session_state.plans = []
-            st.session_state.notes = []
-            save_json(PLANS_FILE, st.session_state.plans)
-            save_json(NOTES_FILE, st.session_state.notes)
-            st.success("All data removed.")
+# --- Page Navigation ---
+if menu == "Mnemonics":
+    mnemonics_page()
+elif menu == "Flashcards":
+    flashcards_page()
+elif menu == "Quizzes":
+    quizzes_page()
+elif menu == "Study Planner":
+    study_planner_page()
+elif menu == "Daily Check-in":
+    daily_checkin_page()
+elif menu == "Study Reminder":
+    study_reminder_page()
+elif menu == "OSCE Simulation":
+    osce_simulation_page()
+elif menu == "Notes / Medical Vault":
+    notes_page()
+elif menu == "Study Chart":
+    study_chart_page()
+elif menu == "Weekly Goals":
+    weekly_goals_page()
+elif menu == "ChatGPT Research":
+    chatgpt_research_page()
+'''
